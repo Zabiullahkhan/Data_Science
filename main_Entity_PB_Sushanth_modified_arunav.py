@@ -41,7 +41,7 @@ class Main:
         for index,match in enumerate(matches):
             match_output.append([match])
             split_text = text.split(match)
-            pos_indexes = [len(split_text)[0],len(split_text)[0]+len(match)]
+            pos_indexes = [len(split_text[0]),len(split_text[0])+len(match)]
             match_output[index].extend(pos_indexes)
             
         return match_output
@@ -368,21 +368,18 @@ class Main:
    
         ### EXTRACT ENTITY - MODEL
         doc = self.nlp(clean_data)
-        print("doc.ents",doc.ents)
         
         res = [[ent.text, ent.label_, ent.start_char, ent.end_char] for ent in doc.ents]
-        print("RES_365",res)
         
         undetected_entity = self.find_last_years(doc,clean_data)
-        print("undetected_entity", undetected_entity)
         
         ### FORMAT THE RESULT :: {entity_cls : 'data1, data2'}
         resDict = {r:[] for r in self.all_labels}
-        print("RES_DICT",resDict)
+        #print("======RES_DICT=======",resDict)
         
         dt_cnt = 0
         for r in res:
-            print("for r in res:",r)
+            
             # UPDATED
             if r[1] == "Date" and r[0] in [i[0] for i in  resDict[r[1]]]:
                 continue
@@ -390,29 +387,28 @@ class Main:
             resDict[r[1]].append([r[0],r[2],r[3]])
             
         resDict['Date'].extend(undetected_entity)
-        print("resDict",resDict)
-        print("resDict[r[1]]", resDict[r[1]],"\n",[r[0],r[2],r[3]])
+        #print("resDict",resDict)
+        #print("resDict[r[1]]", resDict[r[1]],"\n",[r[0],r[2],r[3]])
                 
         final_res = {}
         for k,r in resDict.items():
+            #print("--K--",k,"--R--",r)
+            #print("LENGTH__R",len(r))
             if k.lower() == 'date':
                 # UPDATE
                 if len(r) == 1:
                     try:
-                        #print("previous text")
                         text = clean_data[r[0][1]-20:r[0][1]] +  clean_data[r[0][2]:r[0][2]+20]
                         pattern = r"\d*\s*\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b\s*\d*"
                         matches = re.findall(pattern, text)
                         if matches:
                             r.append([matches[0].strip(), r[0][1]-20, r[0][1]])
-                            #print("GET_ENTITY==r",(r))
                     except:
                         pass
                 # END
 
                 # UPDATE
                 if len(r) == 2:
-                    #print("***",[i[0] for i in  resDict[r[1]]])            
                     try:
                         d1 = datetime.strptime(self.parse_date_format(r[0][0], 'yes1'), "%d-%m-%Y")
                         d2 = datetime.strptime(self.parse_date_format(r[0][0], 'yes2'), "%d-%m-%Y")
@@ -429,7 +425,8 @@ class Main:
                 if 'DateRange' in final_res:
                     final_res["Date"] = ""
                     continue
-            
+                if len(r)> 2:               #----------------------------------LINE NO 428------------------------------#
+                    print("PRINTED",r)
                 # END
                 c = r
                 result = []
@@ -457,6 +454,7 @@ class Main:
                         for vals in ['month','day','year','week']:
                             if vals in ext.lower():
                                 nums = re.findall(r"[0-9]",ext)
+                                #print("___NUMS___",nums)
                                 if nums != []:
                                     try:
                                         ext_output = gd.generate_date_range(ext.lower(),int(nums[0]))
@@ -498,7 +496,7 @@ class Main:
         final_amt = [x for x in  list(set(model_amt + pattern_amt)) if x != '' and x not in wrong_prediction]
         final_res.update({'Amount':','.join(final_amt)})
         final_res = self.false_amount(emailBody,final_res)
-        print("final_res+++++++++++++",final_res)
+        #print("final_res--1",final_res)
         return json.dumps(final_res)
 
     def predict(self, inputStr):
